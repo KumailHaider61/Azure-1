@@ -23,7 +23,7 @@ jobs:
           npm ci
           npm run build
       - name: Zip artifact for deployment
-        run: zip -r release.zip . -x '*.git*' 'node_modules/.cache/*' '.next/cache/*'
+        run: zip -r release.zip . -x '.git/*' '.github/*' '*.md' 'node_modules/.cache/*' '.next/cache/*'
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -44,7 +44,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'Echo-Chamber'
-          slot-name: 'Production'
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_70518D591A2D4D978D9AEA366EB096A8 }}
-
