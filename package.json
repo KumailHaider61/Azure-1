@@ -12,6 +12,7 @@
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start -p $PORT",
+    "postinstall": "next build",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
