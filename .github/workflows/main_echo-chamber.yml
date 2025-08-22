@@ -33,7 +33,10 @@ jobs:
           cp -r node_modules deploy/
           cp -r public deploy/
           cp package.json deploy/
-          cp next.config.js deploy/
+          cp next.config.ts deploy/
+          cp tsconfig.json deploy/
+          cp tailwind.config.ts deploy/
+          cp postcss.config.mjs deploy/
           # Create a tar.gz of the deployment package
           cd deploy
           tar -czf ../deploy.tar.gz .
