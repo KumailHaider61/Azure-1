@@ -25,10 +25,23 @@ jobs:
         env:
           NODE_ENV: production
       
+      - name: Package for deployment
+        run: |
+          # Create a deployment package
+          mkdir deploy
+          cp -r .next deploy/
+          cp -r node_modules deploy/
+          cp -r public deploy/
+          cp package.json deploy/
+          cp next.config.js deploy/
+          # Create a tar.gz of the deployment package
+          cd deploy
+          tar -czf ../deploy.tar.gz .
+      
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'Echo-Chamber'
           slot-name: 'Production'
-          package: .
+          package: deploy.tar.gz
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D1FAE354791A4A13A5D8FD73EE3C26D9 }}
