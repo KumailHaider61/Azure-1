@@ -25,7 +25,8 @@ jobs:
 
       - name: npm install and build
         run: |
-          npm ci
+          rm -f package-lock.json
+          npm install
           npm run build
         env:
           CI: true
