@@ -21,15 +21,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.x'
-          cache: 'npm'
 
-      - name: npm install and build
+      - name: Clean install and build
         run: |
+          # Remove lock files to avoid version conflicts
           rm -f package-lock.json
-          npm install
+          rm -rf node_modules
+          
+          # Fresh install with all dependencies (including dev dependencies for build)
+          npm install --legacy-peer-deps
+          
+          # Build the application
           npm run build
+          
+          # Install only production dependencies in a separate folder
+          mkdir production_modules
+          cp package*.json production_modules/
+          cd production_modules
+          npm install --production --legacy-peer-deps
+          cd ..
+          
+          # Copy production node_modules to deployment
+          rm -rf node_modules
+          mv production_modules/node_modules ./
+          rm -rf production_modules
         env:
           CI: true
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
