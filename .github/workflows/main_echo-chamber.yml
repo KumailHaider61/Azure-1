@@ -1,6 +1,6 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
-name: Build and deploy Node.js app to Azure Web App - Echo-Chamber
+name: Build and deploy container to Azure Web App - Echo-Chamber
 
 on:
   push:
@@ -11,49 +11,26 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js version
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Clean install and build
-        run: |
-          # Remove lock files to avoid version conflicts
-          rm -f package-lock.json
-          rm -rf node_modules
-          
-          # Fresh install with all dependencies (including dev dependencies for build)
-          npm install --legacy-peer-deps
-          
-          # Build the application
-          npm run build
-          
-          # Install only production dependencies in a separate folder
-          mkdir production_modules
-          cp package*.json production_modules/
-          cd production_modules
-          npm install --production --legacy-peer-deps
-          cd ..
-          
-          # Copy production node_modules to deployment
-          rm -rf node_modules
-          mv production_modules/node_modules ./
-          rm -rf production_modules
-        env:
-          CI: true
-          NODE_OPTIONS: "--max-old-space-size=4096"
-
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
+      - name: Log in to registry
+        uses: docker/login-action@v3
         with:
-          name: node-app
-          path: .
+          registry: https://index.docker.io/v1/
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push container image to registry
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/echo-chamber:${{ github.sha }}
+          file: ./Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
@@ -63,17 +40,11 @@ jobs:
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: node-app
-
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'Echo-Chamber'
           slot-name: 'Production'
-          package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D1FAE354791A4A13A5D8FD73EE3C26D9 }}
-          clean: true
+          images: '${{ secrets.DOCKER_USERNAME }}/echo-chamber:${{ github.sha }}'
