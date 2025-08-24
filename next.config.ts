@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  serverRuntimeConfig: { port: 8080 },
 };
 
 export default nextConfig;
