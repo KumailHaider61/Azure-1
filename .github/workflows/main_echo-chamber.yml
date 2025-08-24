@@ -18,9 +18,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Node.js version
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18.x'
+          node-version: '22.x'
           cache: 'npm'
 
       - name: npm install and build
@@ -30,61 +30,11 @@ jobs:
         env:
           CI: true
 
-      - name: Create deployment package
-        run: |
-          # Create a clean deployment directory
-          mkdir deployment-package
-          # Copy necessary files for production
-          cp -r .next deployment-package/
-          cp -r public deployment-package/ || true
-          cp package*.json deployment-package/
-          cp next.config.* deployment-package/ || true
-          # Create web.config if it doesn't exist
-          if [ ! -f web.config ]; then
-            cat > deployment-package/web.config << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <configuration>
-            <system.webServer>
-              <handlers>
-                <add name="iisnode" path="server.js" verb="*" modules="iisnode"/>
-              </handlers>
-              <rewrite>
-                <rules>
-                  <rule name="NodeInspector" patternSyntax="ECMAScript" stopProcessing="true">
-                    <match url="^server.js\/debug[\/]?" />
-                  </rule>
-                  <rule name="StaticContent">
-                    <action type="Rewrite" url="public{REQUEST_URI}"/>
-                  </rule>
-                  <rule name="DynamicContent">
-                    <conditions>
-                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True"/>
-                    </conditions>
-                    <action type="Rewrite" url="server.js"/>
-                  </rule>
-                </rules>
-              </rewrite>
-              <security>
-                <requestFiltering>
-                  <hiddenSegments>
-                    <remove segment="bin"/>
-                  </hiddenSegments>
-                </requestFiltering>
-              </security>
-              <httpErrors existingResponse="PassThrough" />
-              <iisnode watchedFiles="web.config;*.js"/>
-            </system.webServer>
-          </configuration>
-          EOF
-          else
-            cp web.config deployment-package/
-          fi
-
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: deployment-package/
+          path: .
 
   deploy:
     runs-on: ubuntu-latest
@@ -99,13 +49,6 @@ jobs:
         with:
           name: node-app
 
-      - name: 'Stop Azure Web App'
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.30.0
-          inlineScript: |
-            az webapp stop --name Echo-Chamber --resource-group $(echo '${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D1FAE354791A4A13A5D8FD73EE3C26D9 }}' | grep -o 'resourceGroup="[^"]*"' | cut -d'"' -f2) || true
-
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -115,10 +58,3 @@ jobs:
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D1FAE354791A4A13A5D8FD73EE3C26D9 }}
           clean: true
-
-      - name: 'Start Azure Web App'
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.30.0
-          inlineScript: |
-            az webapp start --name Echo-Chamber --resource-group $(echo '${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D1FAE354791A4A13A5D8FD73EE3C26D9 }}' | grep -o 'resourceGroup="[^"]*"' | cut -d'"' -f2)
