@@ -99,6 +99,13 @@ jobs:
         with:
           name: node-app
 
+      - name: 'Stop Azure Web App'
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az webapp stop --name Echo-Chamber --resource-group $(echo '${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D1FAE354791A4A13A5D8FD73EE3C26D9 }}' | grep -o 'resourceGroup="[^"]*"' | cut -d'"' -f2) || true
+
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -107,3 +114,11 @@ jobs:
           slot-name: 'Production'
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D1FAE354791A4A13A5D8FD73EE3C26D9 }}
+          clean: true
+
+      - name: 'Start Azure Web App'
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          inlineScript: |
+            az webapp start --name Echo-Chamber --resource-group $(echo '${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D1FAE354791A4A13A5D8FD73EE3C26D9 }}' | grep -o 'resourceGroup="[^"]*"' | cut -d'"' -f2)
